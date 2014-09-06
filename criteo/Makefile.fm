@@ -1,0 +1,64 @@
+include Makefile.feature.feature1
+
+CMD := ~/libfm-1.40.src/bin/libFM
+ITER := 500
+DIM := 8
+SD := 0.01
+ALGO_NAME := fm_$(ITER)_$(DIM)_$(SD)
+
+MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
+
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1)
+
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1)
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST)
+retrain: clean_$(ALGO_NAME) validation
+
+$(PREDICT_VAL1): $(FEATURE_TRN1).scale $(FEATURE_VAL1).scale | $(DIR_VAL1)
+	$(CMD) \
+	-task c \
+	-method mcmc \
+	-dim 1,1,$(DIM) \
+	-init_stdev $(SD) \
+	-iter $(ITER) \
+	-train $< \
+	-test $(lastword $^) \
+	-out $@ 
+
+$(PREDICT_TST): $(FEATURE_TRN).scale $(FEATURE_TST).scale | $(DIR_TST)
+	$(CMD) \
+	-task c \
+	-method mcmc \
+	-dim 1,1,$(DIM) \
+	-init_stdev $(SD) \
+	-iter $(ITER) \
+	-train $< \
+	-test $(lastword $^) \
+	-out $@ 
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(METRIC_VALS) $(SUBMISSION_TST) $(PREDICT_VALS) $(PREDICT_TST) \
+        $(MODEL_TRNS)
+	find . -name '*.pyc' -delete
+
+.DEFAULT_GOAL := all

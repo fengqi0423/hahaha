@@ -1,0 +1,79 @@
+include Makefile.feature.feature2
+
+CMD := ~/xgboost/xgboost
+CONF := xg.conf
+ITER := 1000
+DEPTH := 4
+LRATE := 0.5
+ALGO_NAME := xg_$(ITER)_$(DEPTH)_$(LRATE)
+
+MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
+
+MODEL_TRN := $(DIR_MODEL)/$(MODEL_NAME).trn.model
+MODEL_TRN1 := $(DIR_MODEL)/$(MODEL_NAME).trn1.model
+MODEL_TRNS := $(MODEL_TRN) $(MODEL_TRN1)
+
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1)
+
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1)
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST)
+retrain: clean_$(ALGO_NAME) validation
+
+$(MODEL_TRN1): $(FEATURE_TRN1) $(FEATURE_VAL1) | $(DIR_MODEL)
+	$(CMD) $(CONF) model_out=$@ \
+                   data=$< \
+                   eval[test]=$(lastword $^) \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE)
+
+$(MODEL_TRN): $(FEATURE_TRN) | $(DIR_MODEL)
+	$(CMD) $(CONF) model_out=$@ \
+                   data=$< \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE)
+
+$(PREDICT_VAL1): $(MODEL_TRN1) $(FEATURE_VAL1) | $(DIR_VAL1)
+	$(CMD) $(CONF) model_in=$< \
+                   name_pred=$@ \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE) \
+                   test:data=$(lastword $^) \
+                   task=pred
+
+$(PREDICT_TST): $(MODEL_TRN) $(FEATURE_TST) | $(DIR_TST)
+	$(CMD) $(CONF) model_in=$< \
+                   name_pred=$@ \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE) \
+                   test:data=$(lastword $^) \
+                   task=pred
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(METRIC_VALS) $(SUBMISSION_TST) $(PREDICT_VALS) $(PREDICT_TST) \
+        $(MODEL_TRNS)
+	find . -name '*.pyc' -delete
+
+.DEFAULT_GOAL := all

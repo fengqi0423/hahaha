@@ -1,0 +1,65 @@
+include Makefile.feature.feature2
+
+ENSEMBLE_FEATURE_NAME := scale_avg_$(FEATURE_NAME)
+
+BASE_MODELS := fm_500_8_0.01_$(FEATURE_NAME) \
+               xg_2000_4_0.5_$(FEATURE_NAME) \
+               lr_0_1_1_$(FEATURE_NAME)
+
+PREDICTS_VAL1 := $(foreach m, $(BASE_MODELS), $(DIR_VAL1)/$(m).val1.yht)
+
+PREDICTS_TST := $(foreach m, $(BASE_MODELS), $(DIR_TST)/$(m).tst.yht)
+
+ENSEMBLE_FEATURE_VAL1 := $(DIR_FEATURE)/$(ENSEMBLE_FEATURE_NAME).val.sps
+ENSEMBLE_FEATURE_TST := $(DIR_FEATURE)/$(ENSEMBLE_FEATURE_NAME).tst.sps
+
+PREDICT_VAL1 := $(DIR_VAL1)/$(ENSEMBLE_FEATURE_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1)
+PREDICT_TST := $(DIR_TST)/$(ENSEMBLE_FEATURE_NAME).tst.yht
+METRIC_VAL1 := $(DIR_METRIC)/$(ENSEMBLE_FEATURE_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1)
+SUBMISSION_TST := $(DIR_TST)/$(ENSEMBLE_FEATURE_NAME).tst.csv
+
+SVM_SCALE := ~/libsvm-3.18/svm-scale
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST)
+retrain: clean_$(ENSEMBLE_FEATURE_NAME) validation
+
+$(ENSEMBLE_FEATURE_VAL1): $(PREDICTS_VAL1) $(Y_VAL1) | $(DIR_FEATURE)
+	python ./src/ensemble_features.py \
+        --feature-file $@ --target-file $(lastword $^) \
+        --predict-files "$(PREDICTS_VAL1)"
+
+$(ENSEMBLE_FEATURE_TST): $(PREDICTS_TST) | $(DIR_FEATURE)
+	python ./src/ensemble_features.py \
+        --feature-file $@ \
+        --predict-files "$(PREDICTS_TST)"
+
+$(PREDICT_VAL1): $(ENSEMBLE_FEATURE_VAL1) | $(DIR_VAL1)
+	$(SVM_SCALE) -l 0 -u 1 -s $^_scale_file $^ > $^.scale
+	python ./src/avg.py \
+           --input-file $^.scale \
+           --output-file $@
+
+$(PREDICT_TST): $(ENSEMBLE_FEATURE_TST) |  $(DIR_TST)
+	$(SVM_SCALE) -l 0 -u 1 -s $^_scale_file $^ > $^.scale
+	python ./src/avg.py \
+           --input-file $^.scale \
+           --output-file $@
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+clean:: clean_$(ENSEMBLE_FEATURE_NAME)
+
+clean_$(ENSEMBLE_FEATURE_NAME):
+	-rm $(ENSEMBLE_FEATURE_VAL1) $(ENSEMBLE_FEATURE_TST) $(PREDICT_VALS) $(METRIC_VALS) \
+        $(PREDICT_TST) $(SUBMISSION_TST)

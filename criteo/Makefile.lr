@@ -1,0 +1,67 @@
+include Makefile.feature.feature1
+
+CMD := ~/liblinear-1.94/
+TYPE := 0
+C := 1
+BIAS := 1
+ALGO_NAME := lr_$(TYPE)_$(C)_$(BIAS)
+
+MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
+
+MODEL_TRN := $(DIR_MODEL)/$(MODEL_NAME).trn.model
+MODEL_TRN1 := $(DIR_MODEL)/$(MODEL_NAME).trn1.model
+MODEL_TRNS := $(MODEL_TRN) $(MODEL_TRN1)
+
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1)
+
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1)
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST)
+retrain: clean_$(ALGO_NAME) validation
+
+$(MODEL_TRN1): $(FEATURE_TRN1).scale | $(DIR_MODEL)
+	$(CMD)train -s $(TYPE) \
+                -B $(BIAS) \
+                -c $(C) \
+                $< \
+                $@
+
+$(MODEL_TRN): $(FEATURE_TRN).scale | $(DIR_MODEL)
+	$(CMD)train -s $(TYPE) \
+                -B $(BIAS) \
+                -c $(C) \
+                $< \
+                $@
+
+$(PREDICT_VAL1): $(MODEL_TRN1) $(FEATURE_VAL1).scale | $(DIR_VAL1)
+	$(CMD)predict -b 1 $(lastword $^) $< $@.tmp
+	tail -n +2 $@.tmp | cut -d" " -f2 > $@
+
+$(PREDICT_TST): $(MODEL_TRN) $(FEATURE_TST).scale | $(DIR_TST)
+	$(CMD)predict -b 1 $(lastword $^) $< $@.tmp
+	tail -n +2 $@.tmp | cut -d" " -f2 > $@
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(METRIC_VALS) $(SUBMISSION_TST) $(PREDICT_VALS) $(PREDICT_TST) \
+        $(MODEL_TRNS)
+	find . -name '*.pyc' -delete
+
+.DEFAULT_GOAL := all
