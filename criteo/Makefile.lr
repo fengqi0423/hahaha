@@ -20,11 +20,15 @@ PREDICT_VALS := $(PREDICT_VAL1)
 PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
 
 SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+SUBMISSION_TST_GZ := $(DIR_TST)/$(MODEL_NAME).tst.csv.gz
 
 all: validation submission
 validation: $(METRIC_VALS)
-submission: $(SUBMISSION_TST)
+submission: $(SUBMISSION_TST_GZ)
 retrain: clean_$(ALGO_NAME) validation
+
+$(SUBMISSION_TST_GZ): $(SUBMISSION_TST)
+	gzip -f $<
 
 $(MODEL_TRN1): $(FEATURE_TRN1).scale | $(DIR_MODEL)
 	$(CMD)train -s $(TYPE) \

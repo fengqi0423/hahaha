@@ -20,10 +20,11 @@ PREDICT_VALS := $(PREDICT_VAL1) $(PREDICT_VAL2)
 PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
 
 SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+SUBMISSION_TST_GZ := $(DIR_TST)/$(MODEL_NAME).tst.csv.gz
 
 all: validation submission
 validation: $(METRIC_VALS)
-submission: $(SUBMISSION_TST)
+submission: $(SUBMISSION_TST_GZ)
 retrain: clean_$(ALGO_NAME) validation
 
 $(MODEL_TRN1): $(FEATURE_VW_TRN1) | $(DIR_MODEL)
@@ -41,6 +42,9 @@ $(PREDICT_VAL1): $(MODEL_TRN1) $(FEATURE_VW_VAL1) | $(DIR_VAL1)
 
 $(PREDICT_TST): $(MODEL_TRN) $(FEATURE_VW_TST) | $(DIR_TST)
 	$(CMD) -t -i $< -d $(lastword $^) -p $@
+
+$(SUBMISSION_TST_GZ): $(SUBMISSION_TST)
+	gzip -f $<
 
 $(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
 	paste -d, $(lastword $^) $< > $@.tmp

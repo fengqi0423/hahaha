@@ -20,11 +20,15 @@ PREDICT_VALS := $(PREDICT_VAL1) $(PREDICT_VAL2)
 PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
 
 SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+SUBMISSION_TST_GZ := $(DIR_TST)/$(MODEL_NAME).tst.csv.gz
 
 all: validation submission
 validation: $(METRIC_VALS)
-submission: $(SUBMISSION_TST)
+submission: $(SUBMISSION_TST_GZ)
 retrain: clean_$(ALGO_NAME) validation
+
+$(SUBMISSION_TST_GZ): $(SUBMISSION_TST)
+	gzip -f $<
 
 $(MODEL_TRN1): $(FEATURE_VW_TRN1) | $(DIR_MODEL)
 	$(CMD) -d $< -f $@ --loss_function logistic --cache_file $<.tmp \
@@ -50,7 +54,7 @@ $(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
 $(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
 	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
 	cat $@
-	
+
 clean:: clean_$(ALGO_NAME)
 
 clean_$(ALGO_NAME):
