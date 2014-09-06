@@ -1,0 +1,67 @@
+include Makefile.feature.feature1
+
+CMD := ~/fest/
+TYPE := 3
+DEPTH := 4
+TREES := 100
+ALGO_NAME := fest_$(TYPE)_$(DEPTH)_$(TREES)
+
+MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
+
+MODEL_TRN := $(DIR_MODEL)/$(MODEL_NAME).trn.model
+MODEL_TRN1 := $(DIR_MODEL)/$(MODEL_NAME).trn1.model
+MODEL_TRNS := $(MODEL_TRN) $(MODEL_TRN1)
+
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1)
+
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1)
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST)
+retrain: clean_$(ALGO_NAME) validation
+
+$(MODEL_TRN1): $(FEATURE_TRN1) $(FEATURE_VAL1) | $(DIR_MODEL)
+	$(CMD)festlearn -c $(TYPE) \
+                      -d $(DEPTH) \
+                      -e \
+                      -t $(TREES) \
+                      $< \
+                      $@
+
+$(MODEL_TRN): $(FEATURE_TRN) | $(DIR_MODEL)
+	$(CMD)festlearn -c $(TYPE) \
+                      -d $(DEPTH) \
+                      -e \
+                      -t $(TREES) \
+                      $< \
+                      $@
+
+$(PREDICT_VAL1): $(MODEL_TRN1) $(FEATURE_VAL1) | $(DIR_VAL1)
+	$(CMD)festclassify $(lastword $^) $< $@
+
+$(PREDICT_TST): $(MODEL_TRN) $(FEATURE_TST) | $(DIR_TST)
+	$(CMD)festclassify $(lastword $^) $< $@
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(METRIC_VALS) $(SUBMISSION_TST) $(PREDICT_VALS) $(PREDICT_TST) \
+        $(MODEL_TRNS)
+	find . -name '*.pyc' -delete
+
+.DEFAULT_GOAL := all

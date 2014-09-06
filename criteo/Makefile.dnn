@@ -1,0 +1,83 @@
+include Makefile.feature.feature3
+
+comma := ,
+dash := -
+CMD := hector-mc-run
+STEPS := 10
+HIDDEN := 20
+LEARNING_RATE := 0.1
+LEARNING_RATE_DISCOUNT := 0.95
+DROPOUT := 0.5
+DROPOUT_INPUT := 0.3
+REGULAR := 0.0
+MOMENTUM := 0.0
+ALGO_NAME := dnn_$(subst $(comma),$(dash),$(HIDDEN))_$(STEPS)_$(LEARNING_RATE)_$(LEARNING_RATE_DISCOUNT)_$(DROPOUT)_$(DROPOUT_INPUT)_$(REGULAR)_$(MOMENTUM)
+MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
+
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1)
+
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1)
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST)
+retrain: clean_$(ALGO_NAME) validation
+
+$(PREDICT_VAL1): $(FEATURE_TRN1).scale $(FEATURE_VAL1).scale | $(DIR_VAL1)
+	$(CMD) \
+	--method dnn \
+	--global 0 \
+	--prob-of-class 1 \
+	--steps $(STEPS) \
+	--hidden $(HIDDEN) \
+	--learning-rate $(LEARNING_RATE) \
+	--learning-rate-discount $(LEARNING_RATE_DISCOUNT) \
+	--dropout-rate $(DROPOUT) \
+	--dropout-rate-input $(DROPOUT_INPUT) \
+	--regularization $(REGULAR) \
+	--momentum $(MOMENTUM) \
+	--train $< \
+	--test $(lastword $^) \
+	--pred $@ \
+	--validation $(lastword $^)
+
+$(PREDICT_TST): $(FEATURE_TRN).scale $(FEATURE_TST).scale | $(DIR_TST)
+	$(CMD) \
+	--global 0 \
+	--method dnn \
+	--prob-of-class 1 \
+	--steps $(STEPS) \
+	--hidden $(HIDDEN) \
+	--learning-rate $(LEARNING_RATE) \
+	--learning-rate-discount $(LEARNING_RATE_DISCOUNT) \
+	--dropout-rate $(DROPOUT) \
+	--dropout-rate-input $(DROPOUT_INPUT) \
+	--regularization $(REGULAR) \
+ 	--momentum $(MOMENTUM) \
+	--train $< \
+	--test $(lastword $^) \
+	--validation $(lastword $^) \
+	--pred $@
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+	
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(METRIC_VALS) $(SUBMISSION_TST) $(PREDICT_VALS) $(PREDICT_TST) \
+        $(MODEL_TRNS)
+
+.DEFAULT_GOAL := all

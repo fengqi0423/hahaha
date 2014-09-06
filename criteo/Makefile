@@ -1,3 +1,5 @@
+# commands
+SED := sed
 
 # directories
 DIR_DATA := data
