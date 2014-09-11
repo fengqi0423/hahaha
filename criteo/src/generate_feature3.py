@@ -36,7 +36,7 @@ def generate_feature(train_input_file, test_input_file,
     print "row_per_hour_tst %f" % row_per_hour_tst
 
     trn['hour'] = [ x / row_per_hour_trn - int(x / row_per_hour_trn / 24) * 24 for x in range(len(trn)) ]
-    tst['hour'] = [ x / row_per_hour_tst for x in range(len(trn)) ]
+    tst['hour'] = [ x / row_per_hour_tst for x in range(len(tst)) ]
 
     trn['hour_c'] = trn['hour'].apply(lambda x : int(x))
     tst['hour_c'] = tst['hour'].apply(lambda x : int(x))
