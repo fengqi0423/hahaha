@@ -46,11 +46,11 @@ $(MODEL_TRN): $(FEATURE_TRN).scale | $(DIR_MODEL)
 
 $(PREDICT_VAL1): $(MODEL_TRN1) $(FEATURE_VAL1).scale | $(DIR_VAL1)
 	$(CMD)predict -b 1 $(lastword $^) $< $@.tmp
-	tail -n +2 $@.tmp | cut -d" " -f2 > $@
+	python ./src/lr_parser.py -l $@.tmp -p $@
 
 $(PREDICT_TST): $(MODEL_TRN) $(FEATURE_TST).scale | $(DIR_TST)
 	$(CMD)predict -b 1 $(lastword $^) $< $@.tmp
-	tail -n +2 $@.tmp | cut -d" " -f2 > $@
+	python ./src/lr_parser.py -l $@.tmp -p $@
 
 $(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
 	paste -d, $(lastword $^) $< > $@.tmp
