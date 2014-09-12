@@ -1,10 +1,12 @@
 #--------------------------------------------------------------------------
-# feature1: cnt category
+# feature4: feature1 + test 
 #--------------------------------------------------------------------------
 
 include Makefile
 
-FEATURE_NAME := feature3
+BASE_FEATURE_NAME := feature1
+SELECT_MODEL_NAME := xg_1000_4_0.5_feature1
+FEATURE_NAME := feature4
 
 FEATURE_TRN := $(DIR_FEATURE)/$(FEATURE_NAME).trn.sps
 FEATURE_VAL1 := $(DIR_FEATURE)/$(FEATURE_NAME).val1.sps
@@ -23,6 +25,14 @@ FEATURE_TST_SAMPLE := $(DIR_FEATURE)/$(FEATURE_NAME).sample.tst.sps
 
 Y_VAL1 := $(DIR_FEATURE)/$(FEATURE_NAME).y.val1.txt
 
+BASE_FEATURE_TRN := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).trn.sps
+BASE_FEATURE_VAL1 := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).val1.sps
+BASE_FEATURE_TRN1 := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).trn1.sps
+BASE_FEATURE_TST := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).tst.sps
+BASE_FEATURE_TST_SELECTED := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).tst.sps.select
+
+SELECT_PREDICT_TST := $(DIR_TST)/$(SELECT_MODEL_NAME).tst.yht
+
 SVM_SCALE := ~/libsvm-3.18/svm-scale
 
 $(Y_VAL1): $(FEATURE_VAL1)
@@ -35,24 +45,20 @@ $(DIR_FEATURE)/$(FEATURE_NAME).%.vw: $(DIR_FEATURE)/$(FEATURE_NAME).%.sps
 	paste -d"|" $<.y $<.X > $@
 	$(SED) -i "s/|/ |n /g" $@
 
-$(FEATURE_TRN) $(FEATURE_VAL1) $(FEATURE_TRN1) $(FEATURE_TST): | $(DIR_FEATURE) $(DIR_DATA)
-	python src/generate_$(FEATURE_NAME).py --train-input-file=$(DATA_TRN) \
-                                    --test-input-file=$(DATA_TST) \
-                                    --train-feature-file=$(FEATURE_TRN) \
-                                    --valid-feature-file=$(FEATURE_VAL1) \
-                                    --train1-feature-file=$(FEATURE_TRN1) \
-                                    --test-feature-file=$(FEATURE_TST)
+$(FEATURE_TST): | $(DIR_FEATURE)
+	cp $(BASE_FEATURE_TST) $@
 
-sample_feature1: $(FEATURE_TRN_SAMPLE)
-	cat $(FEATURE_TRN_SAMPLE) | wc -l 
+$(FEATURE_VAL1): | $(DIR_FEATURE)
+	cp $(BASE_FEATURE_TST) $@
 
-$(FEATURE_TRN_SAMPLE) $(FEATURE_VAL_SAMPLE) $(FEATURE_TRN1_SAMPLE) $(FEATURE_TST_SAMPLE): $(DATA_TRN_SAMPLE) $(DATA_TST_SAMPLE) | $(DIR_FEATURE) $(DIR_DATA)
-	python src/generate_$(FEATURE_NAME).py --train-input-file=$(DATA_TRN_SAMPLE) \
-                                    --test-input-file=$(DATA_TST_SAMPLE) \
-                                    --train-feature-file=$(FEATURE_TRN_SAMPLE) \
-                                    --valid-feature-file=$(FEATURE_VAL_SAMPLE) \
-                                    --train1-feature-file=$(FEATURE_TRN1_SAMPLE) \
-                                    --test-feature-file=$(FEATURE_TST_SAMPLE)
+$(FEATURE_TRN1):  | $(DIR_FEATURE)
+	cat $(BASE_FEATURE_TRN1) $(BASE_FEATURE_TST_SELECTED) > $@
+
+$(FEATURE_TRN): | $(DIR_FEATURE)
+	cat $(BASE_FEATURE_TRN) $(BASE_FEATURE_TST_SELECTED) > $@
+
+$(BASE_FEATURE_TST_SELECTED): | $(DIR_FEATURE) $(DIR_TST)
+	python ./src/select_tst.py -f $(BASE_FEATURE_TST) -p $(SELECT_PREDICT_TST) -o $@
 
 $(FEATURE_VAL1).scale $(FEATURE_TRN1).scale: $(FEATURE_VAL1) $(FEATURE_TRN1) | $(DIR_FEATURE)
 	$(SVM_SCALE) -l 0 -u 1 -s $(FEATURE_TRN1)_scale_file $(FEATURE_TRN1) > $(FEATURE_TRN1).scale

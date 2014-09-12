@@ -58,7 +58,7 @@ def generate_feature(train_input_file, test_input_file,
         
         trn_col, tst_col = encode_categorical_feature(trn[col],
                                                       tst[col],
-                                                      min_obs=50)
+                                                      min_obs=1000)
         X_trn = sparse.hstack((X_trn, trn_col))
         X_tst = sparse.hstack((X_tst, tst_col))
         log_feature_cnt(X_trn, X_tst)
