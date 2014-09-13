@@ -45,10 +45,11 @@ if __name__ == '__main__':
     parser.add_argument('--feature-file', '-f', required=True, dest='feature_file')
     parser.add_argument('--pred-file', '-p', required=True, dest='pred_file')
     parser.add_argument('--output-file', '-o', required=True, dest='output_file')
+    parser.add_argument('--threshold', '-t', required=False, dest='threshold', default=0.1)
 
     args = parser.parse_args()
 
-    pr_threshold = 0.1
+    pr_threshold = float(args.threshold)
     min_1 = 1 - pr_threshold
     max_0 = pr_threshold
 

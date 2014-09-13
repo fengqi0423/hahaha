@@ -1,12 +1,12 @@
 #--------------------------------------------------------------------------
-# feature4: feature1 + test 
+# feature5: feature1 + test 
 #--------------------------------------------------------------------------
 
 include Makefile
 
 BASE_FEATURE_NAME := feature1
 SELECT_MODEL_NAME := xg_1000_4_0.5_feature1
-FEATURE_NAME := feature4
+FEATURE_NAME := feature5
 
 FEATURE_TRN := $(DIR_FEATURE)/$(FEATURE_NAME).trn.sps
 FEATURE_VAL1 := $(DIR_FEATURE)/$(FEATURE_NAME).val1.sps
@@ -24,14 +24,17 @@ FEATURE_TRN1_SAMPLE := $(DIR_FEATURE)/$(FEATURE_NAME).sample.trn1.sps
 FEATURE_TST_SAMPLE := $(DIR_FEATURE)/$(FEATURE_NAME).sample.tst.sps
 
 Y_VAL1 := $(DIR_FEATURE)/$(FEATURE_NAME).y.val1.txt
+T := 0.05
 
 BASE_FEATURE_TRN := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).trn.sps
 BASE_FEATURE_VAL1 := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).val1.sps
 BASE_FEATURE_TRN1 := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).trn1.sps
 BASE_FEATURE_TST := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).tst.sps
-BASE_FEATURE_TST_SELECTED := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).tst.sps.select
+BASE_FEATURE_TST_SELECTED := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).tst.sps.$(T)_select
+BASE_FEATURE_VAL1_SELECTED := $(DIR_FEATURE)/$(BASE_FEATURE_NAME).val1.sps.$(T)_select
 
 SELECT_PREDICT_TST := $(DIR_TST)/$(SELECT_MODEL_NAME).tst.yht
+SELECT_PREDICT_VAL1 := $(DIR_VAL1)/$(SELECT_MODEL_NAME).val1.yht
 
 SVM_SCALE := ~/libsvm-3.18/svm-scale
 
@@ -51,14 +54,17 @@ $(FEATURE_TST): | $(DIR_FEATURE)
 $(FEATURE_VAL1): | $(DIR_FEATURE)
 	cp $(BASE_FEATURE_VAL1) $@
 
-$(FEATURE_TRN1): $(BASE_FEATURE_TST_SELECTED) | $(DIR_FEATURE)
-	cat $(BASE_FEATURE_TRN1) $(BASE_FEATURE_TST_SELECTED) > $@
+$(FEATURE_TRN1): $(BASE_FEATURE_VAL1_SELECTED) | $(DIR_FEATURE)
+	cat $(BASE_FEATURE_TRN1) $< > $@
 
 $(FEATURE_TRN): $(BASE_FEATURE_TST_SELECTED) | $(DIR_FEATURE)
-	cat $(BASE_FEATURE_TRN) $(BASE_FEATURE_TST_SELECTED) > $@
+	cat $(BASE_FEATURE_TRN) $< > $@
 
 $(BASE_FEATURE_TST_SELECTED): | $(DIR_FEATURE) $(DIR_TST)
-	python ./src/select_tst.py -f $(BASE_FEATURE_TST) -p $(SELECT_PREDICT_TST) -o $@
+	python ./src/select_tst.py -f $(BASE_FEATURE_TST) -p $(SELECT_PREDICT_TST) -o $@ -t $(T)
+
+$(BASE_FEATURE_VAL1_SELECTED): | $(DIR_FEATURE) $(DIR_VAL1)
+	python ./src/select_tst.py -f $(BASE_FEATURE_VAL1) -p $(SELECT_PREDICT_VAL1) -o $@ -t $(T)
 
 $(FEATURE_VAL1).scale $(FEATURE_TRN1).scale: $(FEATURE_VAL1) $(FEATURE_TRN1) | $(DIR_FEATURE)
 	$(SVM_SCALE) -l 0 -u 1 -s $(FEATURE_TRN1)_scale_file $(FEATURE_TRN1) > $(FEATURE_TRN1).scale
