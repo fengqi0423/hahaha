@@ -37,7 +37,7 @@ $(DIRS):
 	mkdir -p $@
 
 $(DIR_DATA)/train.part.csv.%: $(DATA_TRN_HEADER) | $(DIR_DATA)
-	tail -n +2 $(DATA_TRN) | awk "NR % 8 == $* {print}"  > $@.tmp
+	tail -n +2 $(DATA_TRN).all | awk "NR % 8 == $* {print}"  > $@.tmp
 	cat $(DATA_TRN_HEADER) $@.tmp > $@
 
 $(DATA_TRN_SAMPLE): $(DATA_TRN) | $(DIR_DATA)

@@ -1,0 +1,99 @@
+include Makefile.feature.feature1
+
+CMD := ~/xgboost/xgboost
+CONF := xg.conf
+ITER := 100
+DEPTH := 4
+LRATE := 0.5
+ALGO_NAME := xg8_$(ITER)_$(DEPTH)_$(LRATE)
+
+MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
+
+MODEL_TRN := $(addprefix $(DIR_MODEL)/$(MODEL_NAME).trn.model.,${TRN_NUMBERS}) 
+MODEL_TRN1 := $(addprefix $(DIR_MODEL)/$(MODEL_NAME).trn1.model.,${TRN_NUMBERS}) 
+MODEL_TRNS := $(MODEL_TRN) $(MODEL_TRN1)
+
+METRIC_VAL1S := $(addprefix $(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.,${TRN_NUMBERS}) 
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1)
+
+PREDICT_VAL1S := $(addprefix $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.,${TRN_NUMBERS}) 
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1)
+
+PREDICT_TSTS := $(addprefix $(DIR_TST)/$(MODEL_NAME).tst.part.yht.,${TRN_NUMBERS}) 
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+SUBMISSION_TST_GZ := $(DIR_TST)/$(MODEL_NAME).tst.csv.gz
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST_GZ)
+retrain: clean_$(ALGO_NAME) validation
+
+$(SUBMISSION_TST_GZ): $(SUBMISSION_TST)
+	gzip -f $<
+
+$(DIR_MODEL)/$(MODEL_NAME).trn1.model.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.% | $(DIR_MODEL)
+	$(CMD) $(CONF) model_out=$@ \
+                   data=$< \
+                   eval[test]=$(lastword $^) \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE)
+
+$(DIR_MODEL)/$(MODEL_NAME).trn.model.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.% | $(DIR_MODEL)
+	$(CMD) $(CONF) model_out=$@ \
+                   data=$< \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE)
+
+$(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.%: $(DIR_MODEL)/$(MODEL_NAME).trn1.model.% $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.% | $(DIR_VAL1)
+	$(CMD) $(CONF) model_in=$< \
+                   name_pred=$@ \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE) \
+                   test:data=$(lastword $^) \
+                   task=pred
+
+$(DIR_TST)/$(MODEL_NAME).tst.part.yht.%: $(DIR_MODEL)/$(MODEL_NAME).trn.model.% $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.% | $(DIR_TST)
+	$(CMD) $(CONF) model_in=$< \
+                   name_pred=$@ \
+                   num_round=$(ITER) \
+                   bst:max_depth=$(DEPTH) \
+                   bst:eta=$(LRATE) \
+                   test:data=$(lastword $^) \
+                   task=pred
+
+$(PREDICT_TST): $(PREDICT_TSTS) | $(DIR_TST)
+	python ./src/ensemble_features.py \
+               --feature-file $@.f \
+               --predict-files "$^"
+	python ./src/avg.py \
+               --input-file $@.f \
+               --output-file $@
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.%: $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.% $(Y_VAL1) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+$(METRIC_VAL1): $(METRIC_VAL1S) | $(DIR_METRIC)
+	cat $^ > $@
+	cat $@
+
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(METRIC_VALS) $(SUBMISSION_TST) $(PREDICT_VALS) $(PREDICT_TST) \
+        $(MODEL_TRNS)
+	find . -name '*.pyc' -delete
+
+.DEFAULT_GOAL := all
