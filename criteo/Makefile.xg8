@@ -32,6 +32,8 @@ validation: $(METRIC_VALS)
 submission: $(SUBMISSION_TST_GZ)
 retrain: clean_$(ALGO_NAME) validation
 
+.SECONDARY: $(MODEL_TRNS) $(VALS) $(PREDICT_VALS) $(PREDICT_TSTS) $(METRIC_VALS)
+
 $(SUBMISSION_TST_GZ): $(SUBMISSION_TST)
 	gzip -f $<
 
@@ -81,7 +83,7 @@ $(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
 	cat $(word 2, $^) $@.tmp > $@
 	rm $@.tmp
 
-$(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.%: $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.% $(Y_VAL1) | $(DIR_METRIC)
+$(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.%: $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.% $(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.% | $(DIR_METRIC)
 	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
 	cat $@
 

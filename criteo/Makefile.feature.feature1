@@ -29,8 +29,14 @@ FEATURE_TRNS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.,${TRN_N
 FEATURE_TSTS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.,${TRN_NUMBERS})
 FEATURE_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.,${TRN_NUMBERS})
 FEATURE_TRN1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.,${TRN_NUMBERS})
+Y_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.,${TRN_NUMBERS})
+
+.SECONDARY: $(FEATURE_TRNS) $(FEATURE_TSTS) $(FEATURE_VAL1S) $(FEATURE_TRN1S) $(Y_VAL1S)
 
 $(Y_VAL1): $(FEATURE_VAL1)
+	cut -d" " -f1 $< > $@
+
+$(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.%
 	cut -d" " -f1 $< > $@
 
 $(DIR_FEATURE)/$(FEATURE_NAME).%.vw: $(DIR_FEATURE)/$(FEATURE_NAME).%.sps

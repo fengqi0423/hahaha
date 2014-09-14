@@ -19,6 +19,8 @@ DATA_TST_SAMPLE := $(DIR_DATA)/test_sample.csv
 DATA_TRN_HEADER := $(DIR_DATA)/header.trn.txt
 DATA_TRNS := $(addprefix $(DIR_DATA)/train.part.csv.,${TRN_NUMBERS})
 
+.SECONDARY: $(DATA_TRNS)
+
 # directories for the cross validation and ensembling
 DIR_VAL1 := $(DIR_BUILD)/val1
 DIR_TST := $(DIR_BUILD)/tst
