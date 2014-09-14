@@ -1,0 +1,30 @@
+include Makefile.feature.feature1
+
+ENSEMBLE_FEATURE_NAME := ensemble6
+
+BASE_MODELS := fest_3_100_100_feature1 \
+               fm_500_8_0.01_feature1 \
+               lr_0_1_1_feature1 \
+               vw_20_0.1_29_feature1 \
+               vw_q_20_0.1_29_feature1 \
+               xg_1000_4_0.5_feature1
+
+PREDICTS_VAL1 := $(foreach m, $(BASE_MODELS), $(DIR_VAL1)/$(m).val1.yht)
+PREDICTS_TST := $(foreach m, $(BASE_MODELS), $(DIR_TST)/$(m).tst.yht)
+
+ENSEMBLE_FEATURE_VAL1 := $(DIR_FEATURE)/$(ENSEMBLE_FEATURE_NAME).val1.sps
+ENSEMBLE_FEATURE_TST := $(DIR_FEATURE)/$(ENSEMBLE_FEATURE_NAME).tst.sps
+
+$(ENSEMBLE_FEATURE_VAL1): $(PREDICTS_VAL1) $(Y_VAL1) | $(DIR_FEATURE)
+	python ./src/ensemble_features.py --feature-file $@ \
+                               --target-file $(lastword $^) \
+                               --predict-files "$(PREDICTS_VAL1)"
+
+$(ENSEMBLE_FEATURE_TST): $(PREDICTS_TST) | $(DIR_FEATURE)
+	python ./src/ensemble_features.py --feature-file $@ \
+                               --predict-files "$(PREDICTS_TST)"
+
+clean:: clean_$(ENSEMBLE_FEATURE_NAME)
+
+clean_$(ENSEMBLE_FEATURE_NAME):
+	-rm $(ENSEMBLE_FEATURE_VAL) $(ENSEMBLE_FEATURE_TST) 
