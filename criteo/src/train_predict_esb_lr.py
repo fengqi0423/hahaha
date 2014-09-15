@@ -13,11 +13,13 @@ from sklearn.datasets import load_svmlight_file, dump_svmlight_file
 def train_predict_lr_cv(train_file, test_file, predict_train_file,
                         predict_test_file, c, n_fold=10):
     logger.info("Reading in the training data")
-    X_trn, y_trn = load_svmlight_file(train_file, dense=True)
+    X_trn, y_trn = load_svmlight_file(train_file)
+    X_trn = X_trn.todense()
 
     logger.info("Reading in the test data")
-    X_tst, _ = load_svmlight_file(test_file, dense=True)
-
+    X_tst, _ = load_svmlight_file(test_file)
+    X_tst = X_tst.todense()
+    
     logger.info('Normalizing data')
     scaler = StandardScaler()
     X_trn = scaler.fit_transform(X_trn)
