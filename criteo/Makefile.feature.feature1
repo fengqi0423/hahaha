@@ -31,7 +31,13 @@ FEATURE_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.,${TRN
 FEATURE_TRN1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.,${TRN_NUMBERS})
 Y_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.,${TRN_NUMBERS})
 
-.SECONDARY: $(FEATURE_TRNS) $(FEATURE_TSTS) $(FEATURE_VAL1S) $(FEATURE_TRN1S) $(Y_VAL1S)
+FEATURE_VW_TRNS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.vw.,${TRN_NUMBERS})
+FEATURE_VW_TSTS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.vw.,${TRN_NUMBERS})
+FEATURE_VW_TRN1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.vw.,${TRN_NUMBERS})
+FEATURE_VW_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.vw.,${TRN_NUMBERS})
+
+.SECONDARY: $(FEATURE_TRNS) $(FEATURE_TSTS) $(FEATURE_VAL1S) $(FEATURE_TRN1S) $(Y_VAL1S) \
+	$(FEATURE_VW_TRNS) $(FEATURE_VW_TSTS) $(FEATURE_VW_TRN1S) $(FEATURE_VW_VAL1S)
 
 $(Y_VAL1): $(FEATURE_VAL1)
 	cut -d" " -f1 $< > $@
@@ -46,6 +52,33 @@ $(DIR_FEATURE)/$(FEATURE_NAME).%.vw: $(DIR_FEATURE)/$(FEATURE_NAME).%.sps
 	paste -d"|" $<.y $<.X > $@
 	$(SED) -i "s/|/ |n /g" $@
 
+$(DIR_FEATURE)/$(FEATURE_NAME).part.trn.vw.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.%
+	cut -d" " -f1 $< > $<.y
+	cut -d" " -f2- $< > $<.X
+	$(SED) -i "s/0/-1/g" $<.y
+	paste -d"|" $<.y $<.X > $@
+	$(SED) -i "s/|/ |n /g" $@
+
+$(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.vw.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.%
+	cut -d" " -f1 $< > $<.y
+	cut -d" " -f2- $< > $<.X
+	$(SED) -i "s/0/-1/g" $<.y
+	paste -d"|" $<.y $<.X > $@
+	$(SED) -i "s/|/ |n /g" $@
+
+$(DIR_FEATURE)/$(FEATURE_NAME).part.val1.vw.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.%
+	cut -d" " -f1 $< > $<.y
+	cut -d" " -f2- $< > $<.X
+	$(SED) -i "s/0/-1/g" $<.y
+	paste -d"|" $<.y $<.X > $@
+	$(SED) -i "s/|/ |n /g" $@
+
+$(DIR_FEATURE)/$(FEATURE_NAME).part.tst.vw.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.%
+	cut -d" " -f1 $< > $<.y
+	cut -d" " -f2- $< > $<.X
+	$(SED) -i "s/0/-1/g" $<.y
+	paste -d"|" $<.y $<.X > $@
+	$(SED) -i "s/|/ |n /g" $@
 $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.%: $(DIR_DATA)/train.part.csv.% | $(DIR_FEATURE) $(DIR_DATA)
 	python src/generate_$(FEATURE_NAME).py --train-input-file=$(DIR_DATA)/train.part.csv.$* \
                                     --test-input-file=$(DATA_TST) \
