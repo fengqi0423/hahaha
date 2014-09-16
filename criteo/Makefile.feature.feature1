@@ -1,3 +1,4 @@
+
 #--------------------------------------------------------------------------
 # feature1: cnt category
 #--------------------------------------------------------------------------
@@ -36,8 +37,14 @@ FEATURE_VW_TSTS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.vw.,${TRN
 FEATURE_VW_TRN1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.vw.,${TRN_NUMBERS})
 FEATURE_VW_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.vw.,${TRN_NUMBERS})
 
+FEATURE_TRNS_SCALE := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.scale.,${TRN_NUMBERS})
+FEATURE_TSTS_SCALE := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.scale.,${TRN_NUMBERS})
+FEATURE_TRN1S_SCALE := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.scale.,${TRN_NUMBERS})
+FEATURE_VAL1S_SCALE := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.scale.,${TRN_NUMBERS})
+
 .SECONDARY: $(FEATURE_TRNS) $(FEATURE_TSTS) $(FEATURE_VAL1S) $(FEATURE_TRN1S) $(Y_VAL1S) \
-	$(FEATURE_VW_TRNS) $(FEATURE_VW_TSTS) $(FEATURE_VW_TRN1S) $(FEATURE_VW_VAL1S)
+	$(FEATURE_VW_TRNS) $(FEATURE_VW_TSTS) $(FEATURE_VW_TRN1S) $(FEATURE_VW_VAL1S) \
+        $(FEATURE_TRNS_SCALE) $(FEATURE_TSTS_SCALE) $(FEATURE_TRN1S_SCALE) $(FEATURE_VAL1S_SCALE)
 
 $(Y_VAL1): $(FEATURE_VAL1)
 	cut -d" " -f1 $< > $@
@@ -105,6 +112,14 @@ $(FEATURE_TRN_SAMPLE) $(FEATURE_VAL_SAMPLE) $(FEATURE_TRN1_SAMPLE) $(FEATURE_TST
                                     --valid-feature-file=$(FEATURE_VAL_SAMPLE) \
                                     --train1-feature-file=$(FEATURE_TRN1_SAMPLE) \
                                     --test-feature-file=$(FEATURE_TST_SAMPLE)
+
+$(DIR_FEATURE)/$(FEATURE_NAME).part.val1.scale.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.scale.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.% | $(DIR_FEATURE)
+	$(SVM_SCALE) -l 0 -u 1 -s $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.scale.$*
+	$(SVM_SCALE) -r $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.scale.$*
+
+$(DIR_FEATURE)/$(FEATURE_NAME).part.tst.scale.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.scale.% : $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.% | $(DIR_FEATURE)
+	$(SVM_SCALE) -l 0 -u 1 -s $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.scale.$*
+	$(SVM_SCALE) -r $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.scale.$*
 
 $(FEATURE_VAL1).scale $(FEATURE_TRN1).scale: $(FEATURE_VAL1) $(FEATURE_TRN1) | $(DIR_FEATURE)
 	$(SVM_SCALE) -l 0 -u 1 -s $(FEATURE_TRN1)_scale_file $(FEATURE_TRN1) > $(FEATURE_TRN1).scale
