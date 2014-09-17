@@ -31,6 +31,7 @@ FEATURE_TSTS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.,${TRN_N
 FEATURE_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.,${TRN_NUMBERS})
 FEATURE_TRN1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.,${TRN_NUMBERS})
 Y_VAL1S := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.,${TRN_NUMBERS})
+Y_VAL1_ALL := $(DIR_FEATURE)/$(FEATURE_NAME).y.val1.all.txt
 
 FEATURE_VW_TRNS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.vw.,${TRN_NUMBERS})
 FEATURE_VW_TSTS := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.vw.,${TRN_NUMBERS})
@@ -48,6 +49,9 @@ FEATURE_VAL1S_SCALE := $(addprefix $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.scal
 
 $(Y_VAL1): $(FEATURE_VAL1)
 	cut -d" " -f1 $< > $@
+
+$(Y_VAL1_ALL): $(Y_VAL1S) | $(DIR_FEATURE)
+	cat $^ > $@
 
 $(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.%
 	cut -d" " -f1 $< > $@
@@ -117,7 +121,7 @@ $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.scale.% $(DIR_FEATURE)/$(FEATURE_NAME).
 	$(SVM_SCALE) -l 0 -u 1 -s $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.scale.$*
 	$(SVM_SCALE) -r $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.scale.$*
 
-$(DIR_FEATURE)/$(FEATURE_NAME).part.tst.scale.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.scale.% : $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.% | $(DIR_FEATURE)
+$(DIR_FEATURE)/$(FEATURE_NAME).part.tst.scale.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.scale.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.% $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.% | $(DIR_FEATURE)
 	$(SVM_SCALE) -l 0 -u 1 -s $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.scale.$*
 	$(SVM_SCALE) -r $(FEATURE_TRN1)_scale_file.$* $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.sps.$* > $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.scale.$*
 
