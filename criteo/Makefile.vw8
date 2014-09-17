@@ -4,7 +4,7 @@ ITER := 20
 LRATE := 0.1
 B := 29
 CMD := ~/vowpal_wabbit/
-ALGO_NAME := vw_$(ITER)_$(LRATE)_$(B)
+ALGO_NAME := vw8_$(ITER)_$(LRATE)_$(B)
 
 MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
 
