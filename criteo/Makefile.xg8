@@ -2,7 +2,7 @@ include Makefile.feature.feature1
 
 CMD := ~/xgboost/xgboost
 CONF := xg.conf
-ITER := 100
+ITER := 1000
 DEPTH := 4
 LRATE := 0.5
 ALGO_NAME := xg8_$(ITER)_$(DEPTH)_$(LRATE)
@@ -16,6 +16,7 @@ MODEL_TRNS := $(MODEL_TRN) $(MODEL_TRN1)
 METRIC_VAL1S := $(addprefix $(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.,${TRN_NUMBERS}) 
 METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
 METRIC_VALS := $(METRIC_VAL1) $(METRIC_VAL1S)
+METRIC_VAL1_ALL := $(DIR_METRIC)/$(MODEL_NAME).val1.all.txt
 
 PREDICT_VAL1S := $(addprefix $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.,${TRN_NUMBERS}) 
 PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
@@ -83,11 +84,18 @@ $(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
 	cat $(word 2, $^) $@.tmp > $@
 	rm $@.tmp
 
+$(PREDICT_VAL1): $(PREDICT_VAL1S) | $(DIR_VAL1)
+	cat $^ > $@
+
+$(METRIC_VAL1_ALL): $(PREDICT_VAL1) $(Y_VAL1_ALL) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
 $(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.%: $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.% $(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.% | $(DIR_METRIC)
 	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
 	cat $@
 
-$(METRIC_VAL1): $(METRIC_VAL1S) | $(DIR_METRIC)
+$(METRIC_VAL1): $(METRIC_VAL1S) $(METRIC_VAL1_ALL) | $(DIR_METRIC)
 	cat $^ > $@
 	cat $@
 
