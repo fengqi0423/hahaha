@@ -18,6 +18,7 @@ DATA_TRN_SAMPLE := $(DIR_DATA)/train_sample.csv
 DATA_TST_SAMPLE := $(DIR_DATA)/test_sample.csv
 DATA_TRN_HEADER := $(DIR_DATA)/header.trn.txt
 DATA_TRNS := $(addprefix $(DIR_DATA)/train.part.csv.,${TRN_NUMBERS})
+DATA_TRN_LASTDAY := $(DIR_DATA)/train.csv.lastday
 
 .SECONDARY: $(DATA_TRNS)
 
@@ -37,6 +38,10 @@ HEADER := $(DIR_DATA)/header.txt
 # initial setup
 $(DIRS):
 	mkdir -p $@
+
+$(DATA_TRN_LASTDAY): | $(DIR_DATA)
+	tail -n +39291958 $(DATA_TRN).all > $@.tmp
+	cat $(DATA_TRN_HEADER) $@.tmp > $@
 
 $(DIR_DATA)/train.part.csv.%: $(DATA_TRN_HEADER) | $(DIR_DATA)
 	tail -n +2 $(DATA_TRN).all | awk "NR % 8 == $* {print}"  > $@.tmp
