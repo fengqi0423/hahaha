@@ -34,10 +34,10 @@ def get_stat(features, labels, smooth_up, smooth_down, idx=[]):
         key = features[i]
         label = labels[i]
         if key not in stats:
-                stats[key] = [smooth_up, smooth_down] # count of true, total
-            stats[key][1] = stats[key][1] + 1
-            if label == True or label == 1:
-                stats[key][0] = stats[key][0] + 1
+            stats[key] = [smooth_up, smooth_down] # count of true, total
+        stats[key][1] = stats[key][1] + 1
+        if label == True or label == 1:
+            stats[key][0] = stats[key][0] + 1
     return stats
 
 def encode_categorical_feature(trn_feature, tst_feature=[], min_obs=10, n=None):
