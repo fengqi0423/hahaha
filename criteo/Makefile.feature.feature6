@@ -11,6 +11,10 @@ FEATURE_VAL1 := $(DIR_FEATURE)/$(FEATURE_NAME).val1.sps
 FEATURE_TRN1 := $(DIR_FEATURE)/$(FEATURE_NAME).trn1.sps
 FEATURE_TST := $(DIR_FEATURE)/$(FEATURE_NAME).tst.sps
 
+FEATURE_VW_TRN := $(DIR_FEATURE)/$(FEATURE_NAME).trn.vw
+FEATURE_VW_TST := $(DIR_FEATURE)/$(FEATURE_NAME).tst.vw
+FEATURE_VW_TRN1 := $(DIR_FEATURE)/$(FEATURE_NAME).trn1.vw
+FEATURE_VW_VAL1 := $(DIR_FEATURE)/$(FEATURE_NAME).val1.vw
 
 FEATURE_TRN_SAMPLE := $(DIR_FEATURE)/$(FEATURE_NAME).sample.trn.sps
 FEATURE_VAL_SAMPLE := $(DIR_FEATURE)/$(FEATURE_NAME).sample.val1.sps
@@ -23,6 +27,13 @@ SVM_SCALE := ~/libsvm-3.18/svm-scale
 
 $(Y_VAL1): $(FEATURE_VAL1)
 	cut -d" " -f1 $< > $@
+
+$(DIR_FEATURE)/$(FEATURE_NAME).%.vw: $(DIR_FEATURE)/$(FEATURE_NAME).%.sps
+	cut -d" " -f1 $< > $<.y
+	cut -d" " -f2- $< > $<.X
+	$(SED) -i "s/0/-1/g" $<.y
+	paste -d"|" $<.y $<.X > $@
+	$(SED) -i "s/|/ |n /g" $@
 
 $(FEATURE_TRN) $(FEATURE_VAL1) $(FEATURE_TRN1) $(FEATURE_TST): $(DATA_TRN_LASTDAY) | $(DIR_FEATURE) $(DIR_DATA)
 	python src/generate_feature1.py --train-input-file=$(DATA_TRN_LASTDAY) \
