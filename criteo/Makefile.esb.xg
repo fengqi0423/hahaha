@@ -1,4 +1,4 @@
-include Makefile.feature.ensemble6
+include Makefile.feature.ensemble5
 
 ITER := 100
 DEPTH := 4
@@ -20,15 +20,15 @@ retrain: clean_$(ALGO_NAME) submission
 
 $(PREDICT_TST) $(PREDICT_VAL1): $(ENSEMBLE_FEATURE_VAL1) $(ENSEMBLE_FEATURE_TST)\
                                | $(DIR_VAL1) $(DIR_TST)
-	./src/train_predict_esb_xg.py -t $< -v $(lastword $^) -p $(PREDICT_VAL1) -q $(PREDICT_TST) -n $(ITER) -l $(LRATE) -d $(DEPTH)
+	python ./src/train_predict_esb_xg.py -t $< -v $(lastword $^) -p $(PREDICT_VAL1) -q $(PREDICT_TST) -n $(ITER) -l $(LRATE) -d $(DEPTH)
 
 $(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
-	paste -d ' ' $< $(lastword $^) |sort -n -r| cut -d ' ' -f 2 > $@.tmp
+	paste -d, $(lastword $^) $< > $@.tmp
 	cat $(word 2, $^) $@.tmp > $@
 	rm $@.tmp
 
 $(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
-	./src/evaluate.py -t $(lastword $^) -p $< > $@
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
 	cat $@
 
 clean:: clean_$(ALGO_NAME)
