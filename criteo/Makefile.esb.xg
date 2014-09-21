@@ -1,0 +1,40 @@
+include Makefile.feature.ensemble6
+
+ITER := 100
+DEPTH := 4
+LRATE := 0.1
+ALGO_NAME := esb_xg_$(ITER)_$(DEPTH)_$(LRATE)
+MODEL_NAME := $(ALGO_NAME)_$(ENSEMBLE_FEATURE_NAME)
+
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+
+all: validation submission
+validation: $(METRIC_VAL1)
+submission: $(SUBMISSION_TST)
+retrain: clean_$(ALGO_NAME) submission
+
+$(PREDICT_TST) $(PREDICT_VAL1): $(ENSEMBLE_FEATURE_VAL1) $(ENSEMBLE_FEATURE_TST)\
+                               | $(DIR_VAL1) $(DIR_TST)
+	./src/train_predict_esb_xg.py -t $< -v $(lastword $^) -p $(PREDICT_VAL1) -q $(PREDICT_TST) -n $(ITER) -l $(LRATE) -d $(DEPTH)
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d ' ' $< $(lastword $^) |sort -n -r| cut -d ' ' -f 2 > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(METRIC_VAL1): $(PREDICT_VAL1) $(Y_VAL1) | $(DIR_METRIC)
+	./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(MODEL_VAL1) $(PREDICT_VAL1) $(PREDICT_TST) $(SUBMISSION_TST)
+	find . -name '*.pyc' -delete
+
+.DEFAULT_GOAL := all
