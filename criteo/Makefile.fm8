@@ -1,0 +1,97 @@
+include Makefile.feature.feature1
+
+CMD := ~/libfm-1.40.src/bin/libFM
+ITER := 200
+DIM := 8
+SD := 0.01
+ALGO_NAME := fm8_$(ITER)_$(DIM)_$(SD)
+
+MODEL_NAME := $(ALGO_NAME)_$(FEATURE_NAME)
+
+MODEL_TRN := $(addprefix $(DIR_MODEL)/$(MODEL_NAME).trn.model.,${TRN_NUMBERS}) 
+MODEL_TRN1 := $(addprefix $(DIR_MODEL)/$(MODEL_NAME).trn1.model.,${TRN_NUMBERS}) 
+MODEL_TRNS := $(MODEL_TRN) $(MODEL_TRN1)
+
+METRIC_VAL1S := $(addprefix $(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.,${TRN_NUMBERS}) 
+METRIC_VAL1 := $(DIR_METRIC)/$(MODEL_NAME).val1.txt
+METRIC_VALS := $(METRIC_VAL1) $(METRIC_VAL1S)
+METRIC_VAL1_ALL := $(DIR_METRIC)/$(MODEL_NAME).val1.all.txt
+
+PREDICT_VAL1S := $(addprefix $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.,${TRN_NUMBERS}) 
+PREDICT_VAL1 := $(DIR_VAL1)/$(MODEL_NAME).val1.yht
+PREDICT_VALS := $(PREDICT_VAL1) $(PREDICT_VAL1S)
+
+PREDICT_TSTS := $(addprefix $(DIR_TST)/$(MODEL_NAME).tst.part.yht.,${TRN_NUMBERS}) 
+PREDICT_TST := $(DIR_TST)/$(MODEL_NAME).tst.yht
+
+SUBMISSION_TST := $(DIR_TST)/$(MODEL_NAME).tst.csv
+SUBMISSION_TST_GZ := $(DIR_TST)/$(MODEL_NAME).tst.csv.gz
+
+all: validation submission
+validation: $(METRIC_VALS)
+submission: $(SUBMISSION_TST_GZ)
+retrain: clean_$(ALGO_NAME) validation
+
+.SECONDARY: $(MODEL_TRNS) $(VALS) $(PREDICT_VALS) $(PREDICT_TSTS) $(METRIC_VALS)
+
+$(SUBMISSION_TST_GZ): $(SUBMISSION_TST)
+	gzip -f $<
+
+$(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.trn1.scale.% $(DIR_FEATURE)/$(FEATURE_NAME).part.val1.scale.% | $(DIR_VAL1)
+	$(CMD) \
+    -task c \
+    -method mcmc \
+    -dim 1,1,$(DIM) \
+    -init_stdev $(SD) \
+    -iter $(ITER) \
+    -train $< \
+    -test $(lastword $^) \
+    -out $@ 
+
+$(DIR_TST)/$(MODEL_NAME).tst.part.yht.%: $(DIR_FEATURE)/$(FEATURE_NAME).part.trn.scale.% $(DIR_FEATURE)/$(FEATURE_NAME).part.tst.scale.% | $(DIR_VAL1)
+	$(CMD) \
+    -task c \
+    -method mcmc \
+    -dim 1,1,$(DIM) \
+    -init_stdev $(SD) \
+    -iter $(ITER) \
+    -train $< \
+    -test $(lastword $^) \
+    -out $@ 
+
+$(PREDICT_TST): $(PREDICT_TSTS) | $(DIR_TST)
+	python ./src/ensemble_features.py \
+               --feature-file $@.f \
+               --predict-files "$^"
+	python ./src/avg.py \
+               --input-file $@.f \
+               --output-file $@
+
+$(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
+	paste -d, $(lastword $^) $< > $@.tmp
+	cat $(word 2, $^) $@.tmp > $@
+	rm $@.tmp
+
+$(PREDICT_VAL1): $(PREDICT_VAL1S) | $(DIR_VAL1)
+	cat $^ > $@
+
+$(METRIC_VAL1_ALL): $(PREDICT_VAL1) $(Y_VAL1_ALL) | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+$(DIR_METRIC)/$(MODEL_NAME).val1.part.txt.%: $(DIR_VAL1)/$(MODEL_NAME).val1.part.yht.% $(DIR_FEATURE)/$(FEATURE_NAME).part.y.val1.txt.% | $(DIR_METRIC)
+	python ./src/evaluate.py -t $(lastword $^) -p $< > $@
+	cat $@
+
+$(METRIC_VAL1): $(METRIC_VAL1S) $(METRIC_VAL1_ALL) | $(DIR_METRIC)
+	cat $^ > $@
+	cat $@
+
+clean:: clean_$(ALGO_NAME)
+
+clean_$(ALGO_NAME):
+	-rm $(METRIC_VALS) $(SUBMISSION_TST) $(PREDICT_VALS) $(PREDICT_TST) \
+        $(MODEL_TRNS)
+	find . -name '*.pyc' -delete
+
+.DEFAULT_GOAL := all
