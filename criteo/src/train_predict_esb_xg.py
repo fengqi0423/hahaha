@@ -19,7 +19,8 @@ def train_predict_xg_cv(train_file, test_file, predict_train_file,
              'bst:subsample': 0.5,
              'silent': 1,
              'objective': 'binary:logistic',
-             'eval_metric': 'auc'}
+             'eval_metric': 'auc',
+             'nthread': 4}
 
     log.info("reading in the training data")
     X_trn, y_trn = load_data(train_file)
