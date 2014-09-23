@@ -20,7 +20,7 @@ retrain: clean_$(ALGO_NAME) submission
 
 $(PREDICT_TST) $(PREDICT_VAL1): $(ENSEMBLE_FEATURE_VAL1) $(ENSEMBLE_FEATURE_TST)\
                                | $(DIR_VAL1) $(DIR_TST)
-	python ./src/train_predict_esb_xg.py -t $< -v $(lastword $^) -p $(PREDICT_VAL1) -q $(PREDICT_TST) -n $(ITER) -l $(LRATE) -d $(DEPTH)
+	python ./src/train_predict_esb_xg_debug.py -t $< -v $(lastword $^) -p $(PREDICT_VAL1) -q $(PREDICT_TST) -n $(ITER) -l $(LRATE) -d $(DEPTH)
 
 $(SUBMISSION_TST): $(PREDICT_TST) $(HEADER) $(ID_TST) | $(DIR_TST)
 	paste -d, $(lastword $^) $< > $@.tmp

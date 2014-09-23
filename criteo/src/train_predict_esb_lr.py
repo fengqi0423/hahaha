@@ -32,7 +32,7 @@ def train_predict_lr_cv(train_file, test_file, predict_train_file,
     yhat_trn = np.zeros((X_trn.shape[0], ))
     for i, (i_trn, i_val) in enumerate(cv, start=1):
         logger.info('Training CV #{}'.format(i))
-        clf = LogisticRegression(C=c, class_weight='auto', random_state=2013)
+        clf = LogisticRegression(C=c, class_weight=None, random_state=2013)
         clf.fit(X_trn[i_trn], y_trn[i_trn])
 
         yhat_trn[i_val] = clf.predict_proba(X_trn[i_val])[:, 1]
